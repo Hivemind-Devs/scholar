@@ -1,114 +1,127 @@
 # Scraper Worker
 
-YÖK Akademik Portal'dan akademisyen profillerini ve bilgilerini çeken, RabbitMQ tabanlı bir web scraper worker sistemidir.
+> RabbitMQ-based web scraper worker system for collecting academic data from YÖK Academic Portal
 
-## 📋 İçindekiler
+[![Node.js](https://img.shields.io/badge/Node.js-14+-green.svg)](https://nodejs.org/)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 
-- [Genel Bakış](#genel-bakış)
-- [Özellikler](#özellikler)
-- [Mimari](#mimari)
-- [Kurulum](#kurulum)
-- [Yapılandırma](#yapılandırma)
-- [Kullanım](#kullanım)
-- [Proje Yapısı](#proje-yapısı)
-- [Worker'lar](#workerlar)
-- [Bağımlılıklar](#bağımlılıklar)
+## 📋 Overview
 
-## 🎯 Genel Bakış
+The Scraper Worker is a distributed system designed to collect academic information from the YÖK (Council of Higher Education) Academic Portal. It uses RabbitMQ message queues to distribute scraping tasks across multiple workers, performs web scraping operations, and stores results in a PostgreSQL database.
 
-Scraper Worker, YÖK Akademik Portal'dan akademisyen bilgilerini toplayan dağıtık bir sistemdir. RabbitMQ mesaj kuyruğu üzerinden görevleri alır, web scraping işlemlerini gerçekleştirir ve sonuçları PostgreSQL veritabanına kaydeder.
+### Key Features
 
-### Ana İşlevler
+- 🔄 **Distributed Processing**: RabbitMQ-based task distribution
+- 👷 **Dual Workers**: Separate workers for scholar lists and detailed profiles
+- 🔒 **Proxy Support**: Rotating proxy support to handle rate limiting
+- 🔁 **Auto Reconnection**: Automatic reconnection for RabbitMQ connections
+- 📝 **Comprehensive Logging**: Detailed logging of all operations
+- 🎯 **Error Handling**: Robust error handling and retry mechanisms
+- 📊 **Progress Tracking**: Track scraping progress and statistics
 
-- **Scholar Worker**: Bölüm sayfalarından akademisyen listelerini çeker
-- **Profile Worker**: Akademisyen profil sayfalarından detaylı bilgileri çeker
-- **Proxy Desteği**: Rotasyonlu proxy kullanımı ile rate limiting'i aşma
-- **Otomatik Yeniden Bağlanma**: RabbitMQ bağlantılarında otomatik yeniden bağlanma
-- **Detaylı Loglama**: Tüm işlemlerin günlüğünü tutma
-
-## ✨ Özellikler
-
-- ✅ RabbitMQ tabanlı mesaj kuyruğu entegrasyonu
-- ✅ İki farklı worker tipi (Scholar ve Profile)
-- ✅ Proxy rotasyonu desteği
-- ✅ PostgreSQL veritabanı entegrasyonu
-- ✅ Otomatik yeniden deneme mekanizması
-- ✅ Günlük dönen log dosyaları
-- ✅ Çevre tabanlı yapılandırma (development/production)
-- ✅ Cookie ve session yönetimi
-- ✅ Çok sayfalandırılmış listeler için otomatik sayfa geçişi
-
-## 🏗️ Mimari
+## 🏗️ Architecture
 
 ```
-┌─────────────────┐
-│   RabbitMQ      │
-│   Mesaj Kuyruğu │
-└────────┬────────┘
-         │
-         ├──► scholar_tasks ──► Scholar Worker ──► profile_tasks
-         │                            │
-         │                            ▼
-         └──► profile_tasks ──► Profile Worker ──► PostgreSQL
-                                                  Veritabanı
+┌─────────────────────────────────────────────────────────┐
+│                    RabbitMQ Queue                        │
+│                                                           │
+│  ┌──────────────────┐      ┌──────────────────┐         │
+│  │  scholar_tasks  │      │  profile_tasks   │         │
+│  └────────┬─────────┘      └────────┬─────────┘         │
+└───────────┼──────────────────────────┼───────────────────┘
+            │                          │
+            │                          │
+    ┌───────▼────────┐        ┌───────▼────────┐
+    │ Scholar Worker │        │ Profile Worker │
+    │                │        │                │
+    │ - Scrapes      │        │ - Scrapes      │
+    │   department   │        │   detailed     │
+    │   pages        │        │   profiles     │
+    │ - Extracts     │        │ - Extracts     │
+    │   scholar list │        │   all details  │
+    └───────┬────────┘        └───────┬────────┘
+            │                         │
+            │                         │
+            └──────────┬──────────────┘
+                       │
+              ┌────────▼────────┐
+              │   PostgreSQL    │
+              │    Database     │
+              └─────────────────┘
 ```
 
-### İş Akışı
+### Workflow
 
-1. **Scholar Worker** bölüm URL'lerini alır
-2. Bölüm sayfasından akademisyen listesini çıkarır
-3. Her akademisyen için kayıt oluşturur veya günceller
-4. Detaylı bilgi için **Profile Worker**'a görev gönderir
-5. **Profile Worker** profil sayfasından tüm detayları çıkarır
-6. Veritabanına akademisyen bilgilerini kaydeder
+1. **Scholar Worker** receives department URLs from the queue
+2. Scrapes department pages to extract scholar lists
+3. Creates or updates scholar records in the database
+4. Sends detailed scraping tasks to **Profile Worker** queue
+5. **Profile Worker** scrapes individual profile pages
+6. Extracts comprehensive details (publications, education, etc.)
+7. Updates database with complete scholar information
 
-## 🚀 Kurulum
+## ✨ Features
 
-### Gereksinimler
+- ✅ RabbitMQ message queue integration
+- ✅ Two worker types (Scholar and Profile)
+- ✅ Proxy rotation support
+- ✅ PostgreSQL database integration
+- ✅ Automatic retry mechanism
+- ✅ Daily rotating log files
+- ✅ Environment-based configuration (development/production)
+- ✅ Cookie and session management
+- ✅ Automatic pagination handling
+- ✅ Rate limiting protection
 
-- Node.js (v14 veya üzeri)
-- PostgreSQL veritabanı
-- RabbitMQ sunucusu
+## 🚀 Installation
 
-### Adımlar
+### Prerequisites
 
-1. **Repository'yi klonlayın:**
-```bash
-git clone <repository-url>
-cd Scraper
-```
+- **Node.js**: v14 or higher
+- **PostgreSQL**: Database server
+- **RabbitMQ**: Message queue server
 
-2. **Bağımlılıkları yükleyin:**
-```bash
-npm install
-```
+### Steps
 
-3. **Yapılandırma dosyalarını oluşturun:**
-```bash
-# Development ortamı için
-cp bin/config.development.json bin/config.development.json
-# Production ortamı için
-cp bin/config.production.json bin/config.production.json
-```
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Hivemind-Devs/scholar.git
+   cd Scraper
+   ```
 
-4. **Yapılandırma dosyalarını düzenleyin:**
-   - `bin/config.development.json` veya `bin/config.production.json` dosyalarında veritabanı ve RabbitMQ ayarlarını yapın
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-5. **Proxy listesini ekleyin (opsiyonel):**
-   - `services/proxy.service/proxies.json` dosyasına proxy listesini ekleyin
+3. **Create configuration files:**
+   ```bash
+   # Copy example files
+   cp bin/config.development.json.example bin/config.development.json
+   cp bin/config.production.json.example bin/config.production.json
+   ```
 
-## ⚙️ Yapılandırma
+4. **Edit configuration files:**
+   - Update database connection settings in `bin/config.{env}.json`
+   - Configure RabbitMQ connection details
+   - Set queue prefixes for your environment
 
-### Yapılandırma Dosyası Yapısı
+5. **Add proxy list (optional):**
+   - Edit `services/proxy.service/proxies.json` to add your proxy list
+   - Leave empty array `[]` if not using proxies
+
+## ⚙️ Configuration
+
+### Configuration File Structure
 
 ```json
 {
   "postgresConfig": {
     "master": {
-      "user": "kullanici",
-      "host": "localhost",
-      "database": "hivemind",
-      "password": "sifre",
+      "user": "your-db-user",
+      "host": "your-db-host",
+      "database": "your-database",
+      "password": "your-db-password",
       "port": 5432,
       "max": 1000,
       "idleTimeoutMillis": 300000,
@@ -118,18 +131,18 @@ cp bin/config.production.json bin/config.production.json
     }
   },
   "rabbitMQConnection": {
-    "host": "localhost",
+    "host": "your-rabbitmq-host",
     "port": 5672,
-    "username": "kullanici",
-    "password": "sifre",
+    "username": "your-rabbitmq-username",
+    "password": "your-rabbitmq-password",
     "queuePrefix": "Hivemind@development"
   }
 }
 ```
 
-### Proxy Yapılandırması
+### Proxy Configuration
 
-`services/proxy.service/proxies.json` dosyası:
+Edit `services/proxy.service/proxies.json`:
 
 ```json
 [
@@ -145,191 +158,143 @@ cp bin/config.production.json bin/config.production.json
 ]
 ```
 
-## 💻 Kullanım
+Leave as empty array `[]` to disable proxy usage.
 
-### Development Ortamında Çalıştırma
+## 💻 Usage
+
+### Development Environment
 
 ```bash
 npm run dev
 ```
 
-veya
+or
 
 ```bash
 node index.js --env=development
 ```
 
-### Production Ortamında Çalıştırma
+### Production Environment
 
 ```bash
 npm start
 ```
 
-veya
+or
 
 ```bash
 node index.js --env=production
 ```
 
-### RabbitMQ'ya Mesaj Gönderme
-
-#### Scholar Görevi (Bölüm Sayfası)
-
-```javascript
-{
-  "url": "https://akademik.yok.gov.tr/AkademikArama/viewDepartment.jsp?kod=12345",
-  "departmentUrl": "https://akademik.yok.gov.tr/AkademikArama/viewDepartment.jsp?kod=12345"
-}
-```
-
-Kuyruk: `{queuePrefix}:scholar_tasks`
-
-#### Profile Görevi (Profil Sayfası)
-
-```javascript
-{
-  "url": "https://akademik.yok.gov.tr/AkademikArama/viewAuthor.jsp?authorId=12345",
-  "profileUrl": "https://akademik.yok.gov.tr/AkademikArama/viewAuthor.jsp?authorId=12345"
-}
-```
-
-Kuyruk: `{queuePrefix}:profile_tasks`
-
-## 📁 Proje Yapısı
+## 📁 Project Structure
 
 ```
 Scraper/
-├── bin/                          # Yapılandırma dosyaları
-│   ├── index.js                 # Yapılandırma yükleyici
-│   ├── config.development.json  # Development yapılandırması
-│   └── config.production.json   # Production yapılandırması
-├── data-access/                 # Veritabanı erişim katmanı
-│   ├── index.js                 # Repository factory
-│   ├── querybuilder.js          # Query builder ve pool yönetimi
-│   └── repositories.js          # Veritabanı repository'leri
-├── scrapers/                    # Scraper modülleri
-│   ├── profile.scraper.js       # Profil sayfası scraper'ı
-│   └── scholar.scraper.js       # Bölüm sayfası scraper'ı
-├── services/                    # Servis modülleri
-│   ├── index.js                 # Servis factory
-│   ├── logger.service/          # Winston logger servisi
-│   │   └── index.js
-│   ├── proxy.service/           # Proxy yönetim servisi
-│   │   ├── index.js
-│   │   └── proxies.json         # Proxy listesi
-│   └── rabbit.service/          # RabbitMQ servisi
-│       ├── index.js             # RabbitMQ client factory
-│       └── consumer/            # Worker consumer'ları
-│           ├── index.js
-│           ├── profile.worker.js # Profil worker'ı
-│           └── scholar.worker.js # Akademisyen worker'ı
-├── logs/                        # Log dosyaları (otomatik oluşturulur)
-├── index.js                     # Ana giriş noktası
-└── package.json                 # Proje bağımlılıkları
+├── bin/                          # Configuration files
+├── data-access/                 # Database access layer
+├── scrapers/                    # Scraper modules
+├── services/                    # Service modules
+│   ├── logger.service/          # Winston logger service
+│   ├── proxy.service/           # Proxy management service
+│   └── rabbit.service/          # RabbitMQ service
+│       └── consumer/            # Worker consumers
+├── logs/                        # Log files (auto-generated)
+├── index.js                     # Main entry point
+└── package.json                 # Project dependencies
 ```
 
-## 👷 Worker'lar
+## 👷 Workers
 
 ### Scholar Worker
 
-**Sorumlulukları:**
-- Bölüm sayfalarından akademisyen listelerini çekmek
-- Akademisyenlerin temel bilgilerini veritabanına kaydetmek
-- Her akademisyen için Profile Worker'a detaylı scraping görevi göndermek
+**Responsibilities:**
+- Scrapes department pages to extract scholar lists
+- Saves basic scholar information to database
+- Sends detailed scraping tasks to Profile Worker queue
 
-**Yapılandırma:**
-- Kuyruk: `scholar_tasks`
-- Prefetch: 5 (eşzamanlı işlem sayısı)
-
-**Çıkardığı Veriler:**
-- Akademisyen adı
-- Ünvan
-- YÖK ID
-- Profil URL
-- E-posta
-- Araştırma alanları
-- Üniversite/Bölüm bilgisi
+**Configuration:**
+- Queue: `{queuePrefix}:scholar_tasks`
+- Prefetch: 5 (concurrent processing count)
 
 ### Profile Worker
 
-**Sorumlulukları:**
-- Akademisyen profil sayfalarından detaylı bilgileri çekmek
-- Tüm alt sayfaları (yayınlar, dersler, tezler vb.) ziyaret etmek
-- Veritabanına detaylı bilgileri kaydetmek
+**Responsibilities:**
+- Scrapes individual scholar profile pages
+- Visits all sub-pages (publications, courses, theses, etc.)
+- Saves comprehensive details to database
 
-**Yapılandırma:**
-- Kuyruk: `profile_tasks`
-- Prefetch: 15 (eşzamanlı işlem sayısı)
+**Configuration:**
+- Queue: `{queuePrefix}:profile_tasks`
+- Prefetch: 15 (concurrent processing count)
 
-**Çıkardığı Veriler:**
-- Kişisel bilgiler (ad, ünvan, e-posta, ORCID)
-- Akademik geçmiş
-- Eğitim geçmişi
-- Yayınlar (makaleler, bildiriler, kitaplar)
-- Verilen dersler
-- Yönetilen tezler
-- İdari görevler
+## 📦 Dependencies
 
-## 📦 Bağımlılıklar
+### Core Dependencies
 
-### Ana Bağımlılıklar
-
-- **amqplib** (^0.10.9): RabbitMQ client
-- **axios** (^1.13.2): HTTP client
-- **cheerio** (^1.1.2): HTML parsing
-- **got** (^14.6.5): HTTP client (scraping için)
+- **amqplib** (^0.10.9): RabbitMQ client library
+- **axios** (^1.13.2): HTTP client for requests
+- **cheerio** (^1.1.2): HTML parsing and manipulation
+- **got** (^14.6.5): HTTP client for scraping
 - **pg** (^8.16.3): PostgreSQL client
-- **winston** (^3.19.0): Logging
-- **winston-daily-rotate-file** (^5.0.0): Günlük log rotasyonu
+- **winston** (^3.19.0): Logging framework
+- **winston-daily-rotate-file** (^5.0.0): Daily log rotation
 
-### Proxy Desteği
+## 🔧 Development
 
-- **hpagent** (^1.2.0): HTTP proxy agent
-- **https-proxy-agent** (^7.0.6): HTTPS proxy agent
+### Logging
 
-### Cookie Yönetimi
+Logs are saved to `logs/` directory with daily rotation:
+- Structure: `logs/YYYY/MM/DD/application-YYYY-MM-DD.log`
+- `current.log` symlink points to the most recent log file
+- Logs are retained for 14 days
 
-- **tough-cookie** (^6.0.0): Cookie jar yönetimi
-- **axios-cookiejar-support** (^6.0.5): Axios cookie desteği
+### Error Handling
 
-## 🔧 Geliştirme
+- Worker errors are logged and messages are re-queued (nack)
+- Successful operations are acknowledged (ack)
+- Proxy errors release the proxy for reuse
+- Automatic retry for transient failures
 
-### Yeni Scraper Ekleme
+## 📝 Notes
 
-1. `scrapers/` klasörüne yeni scraper dosyası ekleyin
-2. `services/rabbit.service/consumer/` klasörüne yeni worker ekleyin
-3. `services/index.js` dosyasında worker'ı export edin
-4. `index.js` dosyasında worker'ı başlatın
+- Proxy usage is optional; direct connection is used if no proxies are configured
+- SSL certificate verification is disabled (for YÖK site compatibility)
+- Cookie jar is recreated for each scraping operation
+- Delays are added between page requests (rate limiting protection)
+- Workers automatically reconnect to RabbitMQ on connection loss
 
-### Loglama
+## 🐛 Troubleshooting
 
-Loglar `logs/` klasörüne günlük olarak kaydedilir:
-- Yapı: `logs/YYYY/MM/DD/application-YYYY-MM-DD.log`
-- `current.log` symlink ile en güncel log dosyasına işaret eder
-- Loglar 14 gün saklanır
+### Common Issues
 
-### Hata Yönetimi
+1. **RabbitMQ Connection Failed**
+   - Check RabbitMQ server is running
+   - Verify connection credentials in config
+   - Check network connectivity
 
-- Worker hataları loglanır ve mesajlar yeniden kuyruğa alınır (nack)
-- Başarılı işlemler onaylanır (ack)
-- Proxy hatası durumunda proxy serbest bırakılır
+2. **Database Connection Errors**
+   - Verify PostgreSQL is running
+   - Check database credentials
+   - Ensure database exists
 
-## 📝 Notlar
+3. **Scraping Failures**
+   - Check network connectivity
+   - Verify YÖK portal is accessible
+   - Review proxy configuration if using proxies
+   - Check logs for specific error messages
 
-- Proxy kullanımı opsiyoneldir; proxy yoksa doğrudan bağlantı kullanılır
-- SSL sertifika doğrulaması devre dışı bırakılmıştır (YÖK sitesi için)
-- Cookie jar her scraping işlemi için yeniden oluşturulur
-- Sayfa istekleri arasında gecikme eklenir (rate limiting)
+## 📝 License
 
-## 🤝 Katkıda Bulunma
+This project is licensed under the ISC License.
 
-1. Fork edin
-2. Feature branch oluşturun (`git checkout -b feature/AmazingFeature`)
-3. Commit edin (`git commit -m 'Add some AmazingFeature'`)
-4. Push edin (`git push origin feature/AmazingFeature`)
-5. Pull Request açın
+## 👥 Authors
 
-## 📄 Lisans
+**Hivemind Devs**
 
-ISC License
+## 🤝 Contributing
 
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
+
+For more information, visit the [main project README](../README.md).
