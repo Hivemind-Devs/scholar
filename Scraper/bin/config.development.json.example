@@ -1,0 +1,60 @@
+{
+    "postgresConfig" : 
+    {
+        "master" : {
+            "user": "your-db-user",
+            "host":"your-db-host",
+            "database": "your-database",
+            "password": "your-db-password",
+            "port": 5432,
+            "max": 1000,
+            "idleTimeoutMillis": 300000,
+            "ssl": {
+                "rejectUnauthorized": false 
+            }
+        },
+        "floating" : {
+            "user": "your-db-user",
+            "host":"your-db-host",
+            "database": "your-database",
+            "password": "your-db-password",
+            "port": 5432,
+            "max": 1000,
+            "idleTimeoutMillis": 300000,
+            "ssl": {
+                "rejectUnauthorized": false 
+            }
+        },
+        "sync" : {
+            "user": "your-db-user",
+            "host":"your-db-host",
+            "database": "your-database",
+            "password": "your-db-password",
+            "port": 5432,
+            "max": 1000,
+            "idleTimeoutMillis": 300000,
+            "ssl": {
+                "rejectUnauthorized": false 
+            }
+        },
+        "async" : {
+            "user": "your-db-user",
+            "host":"your-db-host",
+            "database": "your-database",
+            "password": "your-db-password",
+            "port": 5432,
+            "max": 1000,
+            "idleTimeoutMillis": 300000,
+            "ssl": {
+                "rejectUnauthorized": false 
+            }
+        }
+    },
+    "rabbitMQConnection" : {
+        "host" : "your-rabbitmq-host",
+        "port" : 5672,
+        "username" : "your-rabbitmq-username",
+        "password" : "your-rabbitmq-password",
+        "queuePrefix" : "Hivemind@development"
+    }
+}
