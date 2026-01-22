@@ -1,0 +1,23 @@
+{
+  "name": "Hivemind - YÖK Academic Research Platform",
+  "short_name": "Hivemind",
+  "description": "Discover and connect with academic supervisors across Turkey",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#0D47A1",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "https://scholar.fediva.tr/",
+  "scope": "https://scholar.fediva.tr/"
+}
+
